@@ -1,0 +1,5 @@
+dtRef,purchase_year,purchase_month,purchase_dayofweek,purchase_hour,estimated_delivery_days,approval_delay_hours,has_carrier_date,has_customer_delivery_date,flagCanceled
+2018-10,2018,10,2,18,12.211469907407407,,0,0,1
+2018-10,2018,10,2,17,12.270625,,0,0,1
+2018-10,2018,10,1,20,26.155532407407406,,0,0,1
+2018-10,2018,10,0,15,21.3540625,,0,0,1

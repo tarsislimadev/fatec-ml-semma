@@ -1,50 +1,128 @@
-# Explicação do notebook `semma_aluno.ipynb`
+# Documentacao do projeto SEMMA
 
-O arquivo `semma_aluno.ipynb` é um notebook Jupyter compatível com o Google
-Colab. Ele organiza o projeto de análise preditiva seguindo a etapa S
-(Sample) do método SEMMA.
+## 1. Objetivo da atividade
 
-## Estrutura do arquivo
+O projeto adapta o notebook `semma_aluno.ipynb` para executar no Google Colab com dados armazenados no Google Drive. A etapa implementada e a etapa **S (Sample)** do SEMMA: carregar uma base publica, estruturar uma base analitica e separar uma amostra historica de uma base OOT (Out of Time).
 
-Um arquivo `.ipynb` é um documento JSON composto por uma lista de células. O
-notebook contém células de código e células Markdown:
+A base escolhida e o **Brazilian E-Commerce Public Dataset by Olist**, disponibilizado no Kaggle. Ela possui datas de compra e de entrega dos pedidos, permitindo criar uma referencia temporal e avaliar o corte OOT.
 
-1. Configuração do ambiente: monta o Google Drive no caminho
-   `/content/drive`.
-2. Importações: carrega o `pandas` e os recursos de modelagem do
-   `scikit-learn`.
-3. Leitura dos dados: localiza e lê o arquivo CSV com
-   `pandas.read_csv`.
-4. Preparação: converte a data de observação, cria a variável resposta
-   binária `entregue` a partir do resultado do pedido e cria atributos
-   derivados da data.
-5. Amostragem temporal: separa o último mês como base OOT (Out-of-Time) e
-   utiliza os meses anteriores para desenvolvimento.
-6. Divisão treino/teste: separa os dados de desenvolvimento de forma
-   estratificada e reproduzível.
-7. Modelagem: treina um Random Forest dentro de um `Pipeline`, com
-   imputação da mediana para valores ausentes.
-8. Avaliação: calcula ROC-AUC, acurácia, precisão, recall e F1 no teste e
-   na base OOT.
-9. Conclusão: orienta a comparar o desempenho temporal do modelo.
+## 2. Arquivos
 
-## Como executar no Google Colab
+- `semma_aluno.ipynb`: notebook executavel com a implementacao.
+- `olist_orders_dataset.csv`: base original de pedidos da Olist.
+- `olist_orders_sample_train.csv`: base historica criada pela etapa Sample.
+- `olist_orders_sample_oot.csv`: base OOT criada com o ultimo mes observado.
 
-1. Faça upload de `semma_aluno.ipynb` para o Google Colab.
-2. Coloque `olist_orders_dataset.csv` no Google Drive.
-3. Execute a célula de montagem do Drive e autorize o acesso.
-4. Confirme que o CSV está em uma das pastas configuradas na célula de
-   leitura.
-5. Execute as células em ordem, de cima para baixo.
+Os dois arquivos de amostra sao gerados pelo notebook na mesma pasta do arquivo de entrada.
 
-## Base de dados e variável resposta
+## 3. Como executar
 
-O projeto utiliza o Brazilian E-Commerce Public Dataset by Olist, obtido no
-Kaggle. A coluna `order_purchase_timestamp` representa a data de observação.
-A coluna `order_status` fornece o resultado observado; o notebook cria
-`entregue`, com valor `1` quando o pedido foi entregue e `0` nos demais casos.
+### Google Colab e Google Drive
 
-As informações de entrega real e o próprio resultado não são usadas como
-atributos preditivos. Assim, a avaliação OOT representa uma verificação
-temporal do comportamento do modelo em pedidos posteriores ao período de
-desenvolvimento.
+1. Envie a pasta do projeto para `Meu Drive/fatec-ml-semma/`.
+2. Garanta que o arquivo esteja em `Meu Drive/fatec-ml-semma/results/olist_orders_dataset.csv`.
+3. Abra `semma_aluno.ipynb` no Google Colab.
+4. Execute as celulas em ordem.
+
+A primeira celula instala `pandas` e `scikit-learn` e tenta montar o Google Drive. A montagem e opcional: se o notebook estiver sendo executado localmente, a ausencia do pacote `google.colab` e ignorada.
+
+### Execucao local
+
+Ao executar o notebook a partir da pasta `results`, o caminho local usado e:
+
+```text
+./olist_orders_dataset.csv
+```
+
+As bibliotecas necessarias sao `pandas` e `scikit-learn`.
+
+## 4. Leitura e preparacao dos dados
+
+O notebook carrega o CSV com `pandas.read_csv` e converte as seguintes colunas para data e hora:
+
+- `order_purchase_timestamp`: momento da compra e data de observacao.
+- `order_approved_at`: momento da aprovacao.
+- `order_delivered_carrier_date`: envio para a transportadora.
+- `order_delivered_customer_date`: entrega ao cliente.
+- `order_estimated_delivery_date`: prazo estimado de entrega.
+
+A base original possui 99.441 pedidos e 8 colunas.
+
+## 5. Base analitica da etapa Sample
+
+A base `abt` e criada em nivel de pedido. As variaveis construidas sao:
+
+- `dtRef`: mes da compra, no formato `AAAA-MM`.
+- `purchase_year`: ano da compra.
+- `purchase_month`: mes da compra.
+- `purchase_dayofweek`: dia da semana da compra, de 0 a 6.
+- `purchase_hour`: hora da compra.
+- `estimated_delivery_days`: dias entre a compra e a data estimada de entrega.
+- `approval_delay_hours`: horas entre a compra e a aprovacao.
+- `has_carrier_date`: indicador de existencia da data de envio para a transportadora.
+- `has_customer_delivery_date`: indicador de existencia da data de entrega ao cliente.
+- `flagCanceled`: target binaria, igual a 1 quando `order_status` e `canceled`.
+
+Os identificadores (`order_id` e `customer_id`) e o status textual original nao entram nas variaveis explicativas.
+
+## 6. Separacao temporal OOT
+
+O notebook define:
+
+```python
+reference_month = abt['dtRef'].max()
+oot = abt[abt['dtRef'] == reference_month].copy()
+df_train = abt[abt['dtRef'] < reference_month].copy()
+```
+
+Essa regra reserva o ultimo mes observado para OOT e usa todos os meses anteriores como historico. Com a versao atual da base, o resultado e:
+
+- Periodo historico: `2016-09` a `2018-09`.
+- Mes OOT: `2018-10`.
+- Base historica: 99.437 pedidos.
+- Base OOT: 4 pedidos.
+
+As assercoes do notebook verificam que as duas bases existem e que o mes OOT e posterior ao ultimo mes historico.
+
+## 7. Amostra de desenvolvimento
+
+A base historica e dividida em treino e teste usando `train_test_split`:
+
+- `test_size=0.2`: 80% para treino e 20% para teste.
+- `random_state=42`: resultado reproduzivel.
+- `stratify=y`: preserva a proporcao de cancelamentos entre treino e teste.
+
+As variaveis numericas usadas nessa divisao recebem a mediana historica quando possuem valores ausentes. A OOT nao participa dessa divisao e permanece reservada para uma avaliacao temporal posterior.
+
+Resultado observado:
+
+- Treino: 79.549 pedidos.
+- Teste: 19.888 pedidos.
+- Taxa de cancelamento historica: aproximadamente 0,625%.
+- Taxa de cancelamento OOT: 100% nos 4 pedidos do ultimo mes.
+
+## 8. Arquivos gerados
+
+Ao final da celula Sample, o notebook executa:
+
+```python
+df_train.to_csv(train_path, index=False)
+oot.to_csv(oot_path, index=False)
+```
+
+Os arquivos gerados sao:
+
+- `olist_orders_sample_train.csv`: base historica completa, antes da divisao interna treino/teste.
+- `olist_orders_sample_oot.csv`: base do ultimo mes observado, mantida fora do desenvolvimento.
+
+## 9. Cuidados e limitacoes
+
+1. A OOT possui apenas 4 pedidos porque o ultimo mes da base original tem poucos registros. Essa amostra e adequada para demonstrar o procedimento, mas e pequena demais para uma avaliacao estatistica confiavel.
+2. `flagCanceled` e derivada de `order_status`, portanto representa cancelamento do pedido, nao churn de cliente.
+3. `has_carrier_date` e `has_customer_delivery_date` dependem de eventos posteriores a compra. Elas sao uteis para demonstrar a estrutura da etapa Sample, mas devem ser removidas ou redefinidas caso o objetivo seja prever cancelamento no momento da compra.
+4. O notebook implementa somente a etapa S do SEMMA. Nao ha treinamento, avaliacao ou selecao de modelo nesta entrega.
+5. A base OOT deve permanecer separada ate a etapa de avaliacao final para evitar vazamento temporal.
+
+## 10. Conclusao
+
+A entrega atende a etapa Sample solicitada: utiliza uma base publica do Kaggle com data de observacao, cria uma referencia mensal, separa o ultimo periodo como OOT, produz uma amostra historica para desenvolvimento e exporta as duas bases para as etapas seguintes do projeto SEMMA.
