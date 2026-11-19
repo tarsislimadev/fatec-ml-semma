@@ -20,7 +20,7 @@ Os dois arquivos de amostra sao gerados pelo notebook na mesma pasta do arquivo 
 ### Google Colab e Google Drive
 
 1. Envie a pasta do projeto para `Meu Drive/fatec-ml-semma/`.
-2. Garanta que o arquivo esteja em `Meu Drive/fatec-ml-semma/results/olist_orders_dataset.csv`.
+2. Garanta que o arquivo esteja em `Meu Drive/fatec-ml-semma/results/20261105/olist_orders_dataset.csv`.
 3. Abra `semma_aluno.ipynb` no Google Colab.
 4. Execute as celulas em ordem.
 
